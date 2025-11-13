@@ -1,71 +1,54 @@
 <?php
 /*
  * ไฟล์: /post_job.php
- * หน้าที่: ฟอร์มสำหรับ "ร้านค้า" (Role 2) โพสต์งาน
+ * (เวอร์ชัน "ทำใหม่" - แก้ให้ตรง DB)
  */
 
-// 1. เรียก "ส่วนหัว" (ยาม, เมนู, $user_id, $role_id)
-require 'includes/header.php';
+// 1. เรียก "ส่วนหัว"
+require 'includes/header.php'; 
 
-// 2. (สำคัญ!) "ยาม" เฉพาะทาง
-// เช็กว่าใช่ Role 2 (Employer) หรือไม่
+// 2. "ยาม" (ต้องเป็น Role 2)
 if ($role_id != 2) {
-    // ถ้าไม่ใช่ (เช่น Role 1 พิมพ์ URL มาเอง)
-    $_SESSION['error'] = "คุณไม่มีสิทธิ์เข้าถึงหน้านี้";
-    header("Location: dashboard.php"); // ไล่กลับไปหน้าหลัก
-    exit;
+    die("สิทธิ์ไม่ถูกต้อง (ต้องเป็น Role 2)");
 }
 
-// 3. (สำคัญ!) ดึง "หมวดหมู่" ทั้งหมดจาก DB มาเตรียมไว้
-try {
-    $stmt_cat = $pdo->query("SELECT * FROM CATEGORIES ORDER BY category_name");
-    $categories = $stmt_cat->fetchAll();
-} catch (Exception $e) {
-    $categories = []; // ถ้าพัง ก็ให้เป็นค่าว่างไปก่อน
+// 3. ดึง shop_id
+$stmt_shop = $pdo->prepare("SELECT shop_id FROM SHOP_PROFILES WHERE user_id = ?");
+$stmt_shop->execute([$user_id]);
+$shop = $stmt_shop->fetch();
+
+if (!$shop) {
+    die("ไม่พบโปรไฟล์ร้านค้าของคุณ");
 }
+$shop_id = $shop['shop_id'];
 
 ?>
 
-<h1>โพสต์ประกาศงานใหม่</h1>
+<h1>โพสต์งานใหม่</h1>
+<p>ขั้นตอนที่ 1: กรอกรายละเอียดงานหลัก (เดี๋ยวเราจะไป "เพิ่มกะงาน" ในขั้นตอนถัดไป)</p>
 
-<form action="post_job_process.php" method="POST">
+<?php if (isset($_SESSION['error'])): ?>
+    <div style="color: red; background: #ffe0e0; padding: 10px; border-radius: 4px;"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div>
+<?php endif; ?>
+
+<form action="post_job_process.php" method="POST" style="background:#f9f9f9; padding:15px; border-radius:8px;">
+    
+    <input type="hidden" name="shop_id" value="<?php echo $shop_id; ?>">
     
     <div>
-        <label for="job_title">ชื่องาน (เช่น: พนักงานเสิร์ฟ, ผู้ช่วยครัว):</label>
-        <input type="text" id="job_title" name="job_title" required>
+        <label>ชื่องาน (เช่น: พนักงานเสิร์ฟ):</label>
+        <input type="text" name="title" required style="width: 100%;">
     </div>
-
     <div>
-        <label for="category_id">หมวดหมู่งาน:</label>
-        <select id="category_id" name="category_id" required>
-            <option value="">-- กรุณาเลือกหมวดหมู่ --</option>
-            <?php
-            // (เอา $categories ที่ดึงมา วนลูปสร้าง <option>)
-            foreach ($categories as $cat) {
-                echo "<option value='{$cat['category_id']}'>{$cat['category_name']}</option>";
-            }
-            ?>
-        </select>
+        <label>คำอธิบายงาน (เช่น: ทำอะไรบ้าง):</label>
+        <textarea name="description" style="width: 100%; height: 100px;"></textarea>
     </div>
-
     <div>
-        <label for="description">รายละเอียดงาน (หน้าที่, คุณสมบัติ):</label>
-        <textarea id="description" name="description" rows="4"></textarea>
+        <label>ค่าจ้าง/ชั่วโมง (เช่น: 120):</label>
+        <input type="text" name="wage_per_hour" style="width: 100%;">
     </div>
     
-    <div>
-        <label for="wage_per_hour">ค่าจ้าง (ต่อชั่วโมง):</label>
-        <input type="number" id="wage_per_hour" name="wage_per_hour" step="0.50" required>
-    </div>
-
-    <div>
-        <label for="num_positions">จำนวนตำแหน่งที่รับ:</label>
-        <input type="number" id="num_positions" name="num_positions" value="1" min="1" required>
-    </div>
-
-    <br>
-    <button type="submit">โพสต์ประกาศงานนี้</button>
-
+    <button type="submit">บันทึก และไปขั้นตอนถัดไป (เพิ่มกะ)</button>
 </form>
 
 <?php

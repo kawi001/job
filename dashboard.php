@@ -35,7 +35,7 @@ require 'includes/header.php';
 // VVVVV (จุดที่ต้องแก้ Path) VVVVV
 //
 // 2. เรียก "ส่วนท้าย" (ที่อยู่ใน ../includes/)
-require 'includes/header.php';
+
 //
 // ^^^^^ (จบจุดที่ต้องแก้ Path) ^^^^^
 //

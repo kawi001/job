@@ -1,96 +1,91 @@
 <?php
 /*
  * ไฟล์: /profile_update.php
- * หน้าที่: "สมอง" รับค่าจาก profile.php แล้ว UPDATE ลง DB
+ * (เวอร์ชัน "ยาม" เช็ก Lat/Lon ว่า "ว่าง" หรือไม่)
  */
 
-// 1. เรียก "ยาม" และ "สะพาน"
-// (เราต้องเริ่ม session และ config เอง เพราะไฟล์นี้ไม่มีหน้าตา)
 session_start();
-require 'includes/config.php';
+require 'includes/config.php'; // (Path ถูกต้อง)
 
-// 2. เช็กว่าล็อกอินหรือยัง
+// 1. "ยาม" (ต้องล็อกอิน)
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
-
-// 3. เช็กว่าส่งมาแบบ POST
 if ($_SERVER["REQUEST_METHOD"] != "POST") {
     header("Location: profile.php");
     exit;
 }
 
-// 4. ดึง ID และ Role จาก Session
+// 2. ดึง ID และ Role จาก Session
 $user_id = $_SESSION['user_id'];
 $role_id = $_SESSION['role_id'];
 
-// 5. (สำคัญ!) แยก Logic การ UPDATE ตาม Role
+//
+// VVVVV (นี่คือ "ยาม" ที่สำคัญ) VVVVV
+//
+// 3. ดึง Lat/Lon ที่ส่งมาจากฟอร์ม (แผนที่)
+$latitude = trim($_POST['latitude']);
+$longitude = trim($_POST['longitude']);
+
+// 4. (สำคัญ!) เช็กว่ามัน "ว่าง" หรือไม่
+// (เราจะ "ไม่ยอม" ให้ค่า "ว่าง" บันทึก)
+if (empty($latitude) || empty($longitude)) {
+    
+    // (ถ้ามันว่าง -> แปลว่า "ไม่ได้ปัก")
+    $_SESSION['error'] = "บันทึกล้มเหลว: กรุณา 'คลิก/ค้นหา/ลากหมุด' ปักตำแหน่ง (บ้าน/ร้าน) ของคุณบนแผนที่ก่อน!";
+    
+    // "ถีบ" กลับไปหน้าเดิม
+    header("Location: profile.php");
+    exit;
+}
+//
+// ^^^^^ (จบ "ยาม") ^^^^^
+//
+
+
+// 5. (ถ้าผ่านยามมาได้) แยก Logic การ UPDATE (เหมือนเดิม)
 try {
 
     if ($role_id == 1 && $_POST['role_type'] == 'seeker') {
         // อัปเดต 'Job Seeker' (Role 1)
-        
         $sql = "UPDATE JOB_SEEKER_PROFILES SET
-                    name = ?,
-                    phone = ?,
-                    address = ?,
-                    skills = ?,
-                    experience = ?,
-                    latitude = ?,
-                    longitude = ?
+                    name = ?, phone = ?, address = ?, skills = ?, 
+                    experience = ?, latitude = ?, longitude = ?
                 WHERE user_id = ?";
-        
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            trim($_POST['name']),
-            trim($_POST['phone']),
-            trim($_POST['address']),
-            trim($_POST['skills']),
-            trim($_POST['experience']),
-            trim($_POST['latitude']),
-            trim($_POST['longitude']),
-            $user_id // (WHERE user_id = ?)
+            trim($_POST['name']), trim($_POST['phone']), trim($_POST['address']),
+            trim($_POST['skills']), trim($_POST['experience']),
+            $latitude, $longitude, // (ใช้ค่าที่ "ผ่านยาม" มา)
+            $user_id 
         ]);
 
     } elseif ($role_id == 2 && $_POST['role_type'] == 'employer') {
         // อัปเดต 'Employer' (Role 2)
-        
         $sql = "UPDATE SHOP_PROFILES SET
-                    shop_name = ?,
-                    phone = ?,
-                    address = ?,
-                    description = ?,
-                    latitude = ?,
-                    longitude = ?
+                    shop_name = ?, phone = ?, address = ?, 
+                    description = ?, latitude = ?, longitude = ?
                 WHERE user_id = ?";
-        
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            trim($_POST['shop_name']),
-            trim($_POST['phone']),
-            trim($_POST['address']),
+            trim($_POST['shop_name']), trim($_POST['phone']), trim($_POST['address']),
             trim($_POST['description']),
-            trim($_POST['latitude']),
-            trim($_POST['longitude']),
-            $user_id // (WHERE user_id = ?)
+            $latitude, $longitude, // (ใช้ค่าที่ "ผ่านยาม" มา)
+            $user_id
         ]);
         
     } else {
-        // (กันโดนยิงมั่ว)
         throw new Exception("Role ไม่ตรงกัน");
     }
 
-    // 6. (สำเร็จ!) ตั้งข้อความ Success
-    $_SESSION['success'] = "อัปเดตโปรไฟล์สำเร็จ!";
+    $_SESSION['success'] = "อัปเดตโปรไฟล์ (และตำแหน่ง) สำเร็จ!";
 
 } catch (Exception $e) {
-    // 7. (ล้มเหลว!) ตั้งข้อความ Error
     $_SESSION['error'] = "อัปเดตล้มเหลว: " . $e->getMessage();
 }
 
-// 8. ส่งกลับไปหน้า profile.php (ไม่ว่าจะสำเร็จหรือล้มเหลว)
+// 6. ส่งกลับไปหน้า profile.php
 header("Location: profile.php");
 exit;
-
 ?>

@@ -1,26 +1,20 @@
 <?php
 /*
  * ไฟล์: /includes/header.php
- * หน้าที่: ส่วนหัว, เมนู (ที่แยก Role), และ "ยาม"
+ * (เวอร์ชัน "ขั้นสุด": โหลด Leaflet + ปลั๊กอิน GeoSearch)
  */
 
-// เริ่ม session ในทุกหน้าที่เรียกใช้ header นี้
 session_start();
+require_once 'config.php'; // (Path ถูกต้อง)
 
-// (1) เรียก "สะพาน" (config)
-// (ไฟล์นี้อยู่ใน /includes/ เหมือนกัน เลยเรียกตรงๆ ได้)
-require_once 'config.php';
-
-// (2) "ยาม"
-// ถ้าไม่มี "บัตรพนักงาน" (Session)
+// "ยาม" (ต้องล็อกอิน)
 if (!isset($_SESSION['user_id'])) {
     $_SESSION['error'] = "กรุณาเข้าสู่ระบบก่อน";
-    // (สำคัญ!) ต้อง "ถอยหลัง" 1 ก้าว เพื่อไปหา login.php
-    header("Location: ../job_match/login.php"); 
+    header("Location: login.php"); 
     exit;
 }
 
-// (3) (ถ้าผ่านยามมาได้) ดึงข้อมูล Session
+// (ดึงข้อมูล Session)
 $user_id = $_SESSION['user_id'];
 $role_id = $_SESSION['role_id'];
 $email = $_SESSION['email'];
@@ -30,29 +24,33 @@ $email = $_SESSION['email'];
 <html lang="th">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Job Match</title>
     <style>
         nav { background: #333; color: white; padding: 10px; display: flex; justify-content: space-between; }
         nav a { color: white; padding: 5px 10px; text-decoration: none; }
         .user-info { padding: 5px 10px; }
     </style>
-</head>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@^3/dist/geosearch.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet-geosearch@^3/dist/geosearch.umd.js" crossorigin=""></script>
+    </head>
 <body>
     <nav>
         <div class="links">
             <a href="dashboard.php">หน้าหลัก</a>
-            
-            <?php if ($role_id == 1): // Role 1 = 'Job Seeker' ?>
+            <?php if ($role_id == 1): ?>
                 <a href="search.php">ค้นหางาน</a>
                 <a href="my_applications.php">การสมัครของฉัน</a>
-            <?php elseif ($role_id == 2): // Role 2 = 'Employer' ?>
+            <?php elseif ($role_id == 2): ?>
                 <a href="post_job.php">โพสต์งานใหม่</a>
                 <a href="my_jobs.php">งานของฉัน</a>
             <?php endif; ?>
-            
             <a href="profile.php">โปรไฟล์</a>
         </div>
-        
         <div class="user-info">
             <?php echo htmlspecialchars($email); ?>
             <a href="logout.php">(ออกจากระบบ)</a>
